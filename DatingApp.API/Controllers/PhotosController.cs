@@ -39,7 +39,7 @@ namespace DatingApp.API.Controllers
             _cloudinary = new Cloudinary(acc);
 
         }
-        [HttpGet("{id}",Name = "GetPhoto")]
+        [HttpGet("{id}", Name = "GetPhoto")]
         public async Task<IActionResult> GetPhoto(int id)
         {
             var photoFromRepo = await _repository.GetPhoto(id);
@@ -48,21 +48,22 @@ namespace DatingApp.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddPhotoForUSer(int userId,[FromForm]PhotoForCreationDto PhotoForCreationDTO)
+        public async Task<IActionResult> AddPhotoForUSer(int userId, [FromForm]PhotoForCreationDto PhotoForCreationDTO)
         {
-             if(userId != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value))//How to check if user is the current user that past the token within id that match the id is reciving
-            return Unauthorized();
+            if (userId != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value))//How to check if user is the current user that past the token within id that match the id is reciving
+                return Unauthorized();
 
             var userFromRepo = await _repository.GetUser(userId);
-            
+
             var file = PhotoForCreationDTO.File;
             var uploadResult = new ImageUploadResult();
-            if(file.Length>0)
+            if (file.Length > 0)
             {
-                using(var stream= file.OpenReadStream())
+                using (var stream = file.OpenReadStream())
                 {
-                    var uploadParams = new ImageUploadParams(){
-                        File = new FileDescription(file.Name,stream),
+                    var uploadParams = new ImageUploadParams()
+                    {
+                        File = new FileDescription(file.Name, stream),
                         Transformation = new Transformation().Width(500).Height(500).Crop("fill").Gravity("face")
                     };
                     uploadResult = _cloudinary.Upload(uploadParams);
@@ -75,18 +76,18 @@ namespace DatingApp.API.Controllers
             var photo = _mapper.Map<Photo>(PhotoForCreationDTO);
 
             if (!userFromRepo.Photos.Any(u => u.IsMain))
-           photo.IsMain= true;
+                photo.IsMain = true;
 
-           userFromRepo.Photos.Add(photo);
+            userFromRepo.Photos.Add(photo);
 
-           
 
-           if (await _repository.SaveAll())
-           {
-               var photoToReturn = _mapper.Map<PhotoForReturnDto>(photo);
-               return CreatedAtRoute("GetPhoto", new {id = photo.Id},photoToReturn);
-           }
-           return BadRequest("Could not add the photo");
+
+            if (await _repository.SaveAll())
+            {
+                var photoToReturn = _mapper.Map<PhotoForReturnDto>(photo);
+                return CreatedAtRoute("GetPhoto", new { id = photo.Id }, photoToReturn);
+            }
+            return BadRequest("Could not add the photo");
 
 
 
@@ -94,30 +95,71 @@ namespace DatingApp.API.Controllers
         }
 
         [HttpPost("{id}/setMain")]
-        public async Task<IActionResult> SetMainPhoto(int userId,int id)
+        public async Task<IActionResult> SetMainPhoto(int userId, int id)
         {
-            if(userId != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value))//How to check if user is the current user that past the token within id that match the id is reciving
-            return Unauthorized();
+            if (userId != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value))//How to check if user is the current user that past the token within id that match the id is reciving
+                return Unauthorized();
 
             var user = await _repository.GetUser(userId);
-            
-            if(!user.Photos.Any(p=>p.Id == id))
-            return Unauthorized();
+
+            if (!user.Photos.Any(p => p.Id == id))
+                return Unauthorized();
 
             var photoFromRepo = await _repository.GetPhoto(id);
 
-            if(photoFromRepo.IsMain)
-             return BadRequest("This is already the main photo");
+            if (photoFromRepo.IsMain)
+                return BadRequest("This is already the main photo");
 
-             var currentMainPhoto = await _repository.GetMainPhotoForUser(userId);
+            var currentMainPhoto = await _repository.GetMainPhotoForUser(userId);
             currentMainPhoto.IsMain = false;
 
             photoFromRepo.IsMain = true;
-            
-            if(await _repository.SaveAll())
-            return NoContent();
+
+            if (await _repository.SaveAll())
+                return NoContent();
 
             return BadRequest("Could not set photo to main");
+
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePhoto(int userId, int id)
+        {
+            if (userId != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value))//How to check if user is the current user that past the token within id that match the id is reciving
+                return Unauthorized();
+
+            var user = await _repository.GetUser(userId);
+
+            if (!user.Photos.Any(p => p.Id == id))
+                return Unauthorized();
+
+            var photoFromRepo = await _repository.GetPhoto(id);
+
+            if (photoFromRepo.IsMain)
+                return BadRequest("You can not delete your main photo");
+
+            if (photoFromRepo.PublicId != null)
+            {
+                var deleteParams = new DeletionParams(photoFromRepo.PublicId);
+                var result = _cloudinary.Destroy(deleteParams);
+
+                if (result.Result == "ok")
+                {
+                    _repository.Delete(photoFromRepo);
+                }
+            }
+
+            if (photoFromRepo.PublicId == null)
+            {
+                _repository.Delete(photoFromRepo);
+            }
+
+
+
+            if (await _repository.SaveAll())
+                return Ok();
+
+            return BadRequest("Failed to delete the photo");
 
         }
 

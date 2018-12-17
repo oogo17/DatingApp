@@ -29,7 +29,7 @@ export class PhotoEditorComponent implements OnInit {
     this.hasBaseDropZoneOver = e;
   }
 
-  initializeUploader(){
+  initializeUploader() {
     this.uploader = new FileUploader({
       url : this.baseUrl + 'users/' + this.authService.decodedToken.nameid + '/photos',
       authToken: 'Bearer ' + localStorage.getItem('token'),
@@ -68,6 +68,17 @@ export class PhotoEditorComponent implements OnInit {
     }, error => {
       this.alertifyService.error(error);
 
+    });
+  }
+
+  deletePhoto(id: number) {
+    this.alertifyService.confirm('Are you sure you want to delete photo?', () => {
+      this.userService.deletePhoto(this.authService.decodedToken.nameid, id).subscribe(() => {
+        this.photos.splice(this.photos.findIndex(p => p.id === id), 1);
+        this.alertifyService.success('Photo has been deleted');
+      }, error => {
+        this.alertifyService.error('Failed to delete the photo');
+    });
     });
   }
 }

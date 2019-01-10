@@ -26,9 +26,9 @@
     </select>
   </div> -->
   <div class="form-group">
-    <input [ngClass]="{'is-invalid': registerForm.get('knownAs').errors && registerForm.get('knownAs').touched}" class="form-control"
-      placeholder="Known as" formControlName="knownAs">
-    <div class="invalid-feedback" *ngIf="registerForm.get('knownAs').touched && registerForm.get('knownAs').hasError('required')">Known as is required</div>
+    <input [ngClass]="{'is-invalid': registerForm.get('knowAs').errors && registerForm.get('knowAs').touched}" class="form-control"
+      placeholder="Known as" formControlName="knowAs">
+    <div class="invalid-feedback" *ngIf="registerForm.get('knowAs').touched && registerForm.get('knowAs').hasError('required')">Known as is required</div>
   </div>
 
   <div class="form-group">

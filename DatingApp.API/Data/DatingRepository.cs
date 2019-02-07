@@ -91,6 +91,10 @@ namespace DatingApp.API.Data
                 }
                 
             }
+            else
+            {
+                   users = users.OrderByDescending(u => u.LastActivate);
+            }
             
             return await PagedList<User>.CreateAsync(users, userParams.PageNumber,userParams.PageSize);
         }

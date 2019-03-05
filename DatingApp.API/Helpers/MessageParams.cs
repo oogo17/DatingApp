@@ -12,7 +12,7 @@ namespace DatingApp.API.Helpers
             set { pageSize = (value > MaxPageSize)? MaxPageSize:value;}
         }
 
-        public int UserID { get; set; }
+        public int UserId { get; set; }
 
         public string  MessageContainer { get; set; } = "Unread";
     }
